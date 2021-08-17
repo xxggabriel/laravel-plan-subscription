@@ -1,0 +1,54 @@
+{
+    "name": "xxggabriel/laravel-plan-subscription",
+    "description": "",
+    "keywords": [
+        "xxggabriel",
+        "laravel-plan-subscription"
+    ],
+    "homepage": "https://github.com/xxggabriel/laravel-plan-subscription",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Gabriel Oliveira",
+            "email": "gabriel@umobi.com.br",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^7.4|^8.0",
+        "illuminate/support": "^8.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^6.0",
+        "phpunit/phpunit": "^9.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Xxggabriel\\LaravelPlanSubscription\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Xxggabriel\\LaravelPlanSubscription\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Xxggabriel\\LaravelPlanSubscription\\LaravelPlanSubscriptionServiceProvider"
+            ],
+            "aliases": {
+                "LaravelPlanSubscription": "Xxggabriel\\LaravelPlanSubscription\\LaravelPlanSubscriptionFacade"
+            }
+        }
+    }
+}
