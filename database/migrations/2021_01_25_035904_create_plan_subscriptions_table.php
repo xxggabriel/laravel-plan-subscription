@@ -21,12 +21,9 @@ class CreatePlanSubscriptionsTable extends Migration
             $table->dateTime('cancels_at')->nullable();
             $table->dateTime('canceled_at')->nullable();
             $table->string('timezone')->nullable();
-            $table->integer('status')->default(PlanSubscription::STATUS_ACTIVE);
             $table->timestamps();
             $table->softDeletes();
-            $table->integer('status')->default(1);
-            $table->dateTime('payment_failed_at')->nullable();
-
+            
             $table->foreign('plan_id')
                 ->references('id')
                 ->on('plans')
