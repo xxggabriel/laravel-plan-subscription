@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Xxggabriel\LaravelPlanSubscription\Models\PlanSubscription;
 
 class CreatePlanSubscriptionsTable extends Migration
 {
@@ -20,6 +21,7 @@ class CreatePlanSubscriptionsTable extends Migration
             $table->dateTime('cancels_at')->nullable();
             $table->dateTime('canceled_at')->nullable();
             $table->string('timezone')->nullable();
+            $table->integer('status')->default(PlanSubscription::STATUS_ACTIVE);
             $table->timestamps();
             $table->softDeletes();
             $table->integer('status')->default(1);
@@ -30,11 +32,6 @@ class CreatePlanSubscriptionsTable extends Migration
                 ->on('plans')
                 ->onDelete('cascade')
                 ->onUpdate('cascade');
-
-            $table->foreign('account_id')
-                ->references('id')
-                ->on('accounts')
-                ->onDelete('cascade');
         });
     }
 
