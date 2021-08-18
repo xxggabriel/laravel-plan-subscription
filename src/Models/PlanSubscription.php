@@ -2,15 +2,13 @@
 
 namespace Xxggabriel\LaravelPlanSubscription\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Xxggabriel\LaravelPlanSubscription\Services\Period;
 
 class PlanSubscription extends Model
 {
-
-    const STATUS_INACTIVE = 0;
-    const STATUS_ACTIVE = 1;
-    const STATUS_EXPIRED = 3;
-    const STATUS_CANCELED = 4;
 
     protected $dates = [
         "trial_ends_at",
@@ -20,98 +18,131 @@ class PlanSubscription extends Model
         "canceled_at",
     ];
 
-    protected $appends = [
-        // "active"
-    ];
 
-    public function endsAt()
+    public function daysToEndOfSubscription()
     {
         return now()->diffInDays($this->ends_at, false);
     }
 
-    public function renew($status = self::STATUS_ACTIVE)
+    public function cancel($now = false)
     {
-        $this->ends_at = now()->addMonths($this->plan->invoice_period);
-        $this->status = $status;
+        $this->canceled_at = now();
+        if($now){
+            $this->ends_at = $this->canceled_at;            
+        } 
+
         $this->save();
         return $this;
     }
 
-    public function cancel($now = false)
-    {
-        $this->status = self::STATUS_CANCELED;
-        if($now){
-            $this->canceled_at = now();
-            $this->save();
-            return $this->canceled_at;
-        } else {
-            $this->cancels_at = now();
-            $this->save();
-            return $this->cancels_at;
-        }
-    }
-
     public function activate()
     {
-        $subscription = self::query()
-            ->where("account_id", $this->account_id)
-            ->firstOrFail();
+        $this->cancels_at = null;
+        $this->canceled_at = null;
+        $this->save();
 
-        $subscription->cancels_at = null;
-        $subscription->canceled_at = null;
-        $subscription->payment_failed_at = null;
-        $subscription->status = self::STATUS_ACTIVE;
-
-        $subscription->save();
+        return $this;
     }
 
-    public function active($interval = 0)
+    public function active()
     {
-        if($this->canceled_at != null) {
-            return false;
+        return $this->onTrial() || $this->ended();
+    }
+
+    public function inactive()
+    {
+        return !$this->active();
+    }
+
+    public function onTrial()
+    {
+        return $this->trial_ends_at ? Carbon::now()->gnt($this->trial_ends_at) : false;
+    }
+
+    public function ended()
+    {
+        return $this->ends_at ? Carbon::now()->gnt($this->ends_at) : false;
+    }
+
+    public function canceled()
+    {
+        return $this->canceled_at ? Carbon::now()->gnt($this->canceled_at) : false;
+    }
+
+    public function renew()
+    {
+        if ($this->ended() && $this->canceled()) {
+            throw new \Exception('Unable to renew canceled ended subscription.');
         }
 
-        if(!$this->ends_at){
-            return false;
+        $this->usage()->delete();
+        $this->canceled_at = null;
+        $this->setNewPeriod();
+        $this->save();
+
+        return $this;
+    }
+
+    public function setNewPeriod($invoice_interval = '', $invoice_period = '', $start = '')
+    {
+        if(empty($invoice_interval)){
+            $invoice_interval = $this->plan->invoice_interval;
         }
 
-        if(now()->diffInDays($this->ends_at->addDays($interval), false) <= 0){
-            return false;
+        if(empty($invoice_period)){
+            $invoice_period = $this->plan->invoice_period;
         }
 
-        if($this->cancels_at){
-            if(now()->diffInDays($this->ends_at->addDays($this->cancels_at), false) <= 0){
-                return false;
+        $period = new Period($invoice_interval, $invoice_period, $start);
+
+        $this->starts_at = $period->getStartDate();
+        $this->ends_at = $period->getEndDate();
+
+        return $this;
+    }
+
+    public function recordFeatureUsage($featureSlug, $uses = 1, $incremental = true): PlanSubscriptionUsage
+    {
+        $feature = $this->plan->features()->where('slug', $featureSlug)->first();
+
+        $usage = $feature->usage()->firstOrNew([
+            'subscription_id' => $this->getKey(),
+            'feature_id' => $feature->getKey(),
+        ]);
+
+        if($feature->resettable_period){
+            if(is_null($usage->valid_until)){
+                $usage->valid_until = $feature->getResetDate($this->created_at);
+            } elseif($usage->expired()){
+                $usage->valid_until = $feature->getResetDate($usage->valid_until);
+                $usage->used = 0;
             }
         }
 
-        return true;
+        $usage->used = ($incremental ? $usage->used + $uses : $uses);
+        $usage->save();
 
+        return $usage;
     }
 
-    public function getActiveAttribute()
+    public function reduceFeatureUsage(string $featureSlug, int $uses = 1): ?PlanSubscriptionUsage
     {
-        return $this->active();
+        $usage = $this->usage()->byFeatureSlug($featureSlug)->first();
+
+        if (is_null($usage)) {
+            return null;
+        }
+
+        $usage->used = max($usage->used - $uses, 0);
+
+        $usage->save();
+
+        return $usage;
     }
 
-    public function canceled($interval = 0)
+    public function usage(): HasMany
     {
-        if($this->status == self::STATUS_CANCELED){
-            return true;
-        }
-
-        if($this->cancels_at != null){
-            return true;
-        }
-
-        if($this->cancels_at == null){
-            return false;
-        }
-
-        if(now()->diffInDays($this->ends_at->addDays($interval), false) <= 0){
-            return true;
-        }
-
-        return false;
+        return $this->hasMany(config('laravel-plan-subscription.models.plan_subscription_usage'), 'subscription_id', 'id');
     }
+
 }

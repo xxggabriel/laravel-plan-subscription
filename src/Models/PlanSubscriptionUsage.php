@@ -11,4 +11,13 @@ class PlanSubscriptionUsage extends Model
     
     protected $table="plan_subscription_usages";
     //
+
+    public function byFeatureSlug($slug){
+        return $this->where('slug', $slug);
+    }
+
+    public function subscription()
+    {
+        return $this->belongsTo(config('laravel-plan-subscription.models.plan_subscription'));
+    }
 }
