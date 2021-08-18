@@ -4,7 +4,9 @@ namespace Xxggabriel\LaravelPlanSubscription\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Xxggabriel\LaravelPlanSubscription\Services\Period;
 
 class PlanSubscription extends Model
@@ -75,10 +77,14 @@ class PlanSubscription extends Model
             throw new \Exception('Unable to renew canceled ended subscription.');
         }
 
-        $this->usage()->delete();
-        $this->canceled_at = null;
-        $this->setNewPeriod();
-        $this->save();
+        $subscription = $this;
+
+        DB::transaction(function () use ($subscription) {
+            $subscription->usage()->delete();
+            $subscription->canceled_at = null;
+            $subscription->setNewPeriod();
+            $subscription->save();
+        });
 
         return $this;
     }
@@ -105,9 +111,13 @@ class PlanSubscription extends Model
     {
         $feature = $this->plan->features()->where('slug', $featureSlug)->first();
 
-        $usage = $feature->usage()->firstOrNew([
+        if(!$feature){
+            throw new \Exception("Feature not found");
+        }
+
+        $usage = $this->usage()->firstOrNew([
             'subscription_id' => $this->getKey(),
-            'feature_id' => $feature->getKey(),
+            'feature_id' => $feature->id,
         ]);
 
         if($feature->resettable_period){
@@ -127,22 +137,51 @@ class PlanSubscription extends Model
 
     public function reduceFeatureUsage(string $featureSlug, int $uses = 1): ?PlanSubscriptionUsage
     {
-        $usage = $this->usage()->byFeatureSlug($featureSlug)->first();
-
-        if (is_null($usage)) {
+        $feature = $this->getFeatureBySlug($featureSlug);
+        $usage = $this->usage()->where('feature_id', $feature->id)->first();
+        
+        if(!$feature || !$usage){
             return null;
         }
 
-        $usage->used = max($usage->used - $uses, 0);
+        if($usage->used != "*"){
+            $usage->used = max($usage->used - $uses, 0);   
+        }
 
         $usage->save();
 
         return $usage;
     }
 
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(config('laravel-plan-subscription.models.plan'));
+    }
+
     public function usage(): HasMany
     {
         return $this->hasMany(config('laravel-plan-subscription.models.plan_subscription_usage'), 'subscription_id', 'id');
+    }
+
+    public function getFeatureBySlug($featureSlug)
+    {
+        return $this->plan->features()->where("slug", $featureSlug)->first();
+    }
+
+    public function canUseFeature($featureSlug): bool
+    {
+        $feature = $this->getFeatureBySlug($featureSlug);
+        $usage = $this->usage()->where('feature_id', $feature->id)->first();
+        
+        if(!$feature || !$usage){
+            return false;
+        }
+
+        if($usage->used == "*"){
+            return true;
+        }
+
+        return $feature->value > intval($usage->used);
     }
 
 }

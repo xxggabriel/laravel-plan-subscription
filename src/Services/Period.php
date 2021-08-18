@@ -20,9 +20,10 @@ class Period {
         } else {
             $this->start = $start;
         }
-
+        $this->interval = $interval;
         $this->period = $period;
         $start = clone $this->start;
+
         $method = 'add'. ucfirst($this->interval). 's';
         $this->end = $start->{$method}($this->period);
     }
