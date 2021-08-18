@@ -29,8 +29,6 @@ class CreatePlansTable extends Migration
             $table->tinyInteger('prorate_extend_due')->unsigned()->nullable();
             $table->smallInteger('active_subscribers_limit')->unsigned()->nullable();
             $table->mediumInteger('sort_order')->unsigned()->default(0);
-
-            $table->text('differential')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
