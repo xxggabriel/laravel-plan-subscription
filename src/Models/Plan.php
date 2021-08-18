@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace Xxggabriel\LaravelPlanSubscription\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;

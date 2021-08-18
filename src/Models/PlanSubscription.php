@@ -1,12 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace Xxggabriel\LaravelPlanSubscription\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
-use stdClass;
 
 class PlanSubscription extends Model
 {
