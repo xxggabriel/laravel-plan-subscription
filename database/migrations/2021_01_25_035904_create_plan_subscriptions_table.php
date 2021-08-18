@@ -10,7 +10,6 @@ class CreatePlanSubscriptionsTable extends Migration
     {
         Schema::create('plan_subscriptions', function (Blueprint $table) {
             $table->increments('id');
-            $table->integer('account_id')->unsigned();
             $table->integer('plan_id')->unsigned();
             $table->string('slug');
             $table->string('name');
@@ -25,6 +24,7 @@ class CreatePlanSubscriptionsTable extends Migration
             $table->softDeletes();
             $table->integer('status')->default(1);
             $table->dateTime('payment_failed_at')->nullable();
+
             $table->foreign('plan_id')
                 ->references('id')
                 ->on('plans')

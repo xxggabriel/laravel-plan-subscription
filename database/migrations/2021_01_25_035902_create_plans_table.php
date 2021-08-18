@@ -15,9 +15,9 @@ class CreatePlansTable extends Migration
             $table->string('name');
             $table->string('description')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->decimal('price')->default('0.00');
-            $table->decimal('signup_fee')->default('0.00')->nullable();
-            $table->string('currency', 3);
+            $table->decimal('price')->default(0.00);
+            $table->decimal('signup_fee')->default(0.00)->nullable();
+            $table->string('currency', 'BRL');
             $table->smallInteger('trial_period')->unsigned()->default(0)->nullable();
             $table->string('trial_interval')->default('day')->nullable();
             $table->smallInteger('invoice_period')->unsigned()->default(0);
