@@ -10,11 +10,12 @@ class PlanSubscriptionUsage extends Model
 {
     use SoftDeletes;
     
-    protected $table="plan_subscription_usages";
-    
     protected $fillable = [
         "subscription_id",
-        "feature_id"
+        "feature_id",
+        "used",
+        "valid_until",
+        "timezone"
     ];
 
     protected $dates = [
@@ -27,13 +28,13 @@ class PlanSubscriptionUsage extends Model
         return $this->where('feature_id', $feature->id);
     }
 
-    public function subscription()
-    {
-        return $this->belongsTo(config('laravel-plan-subscription.models.plan_subscription'));
-    }
-
     public function expired()
     {
         return $this->valid_until ? Carbon::now()->gte($this->valid_until) : false;
+    }
+
+    public function subscription()
+    {
+        return $this->belongsTo(config('laravel-plan-subscription.models.plan_subscription'));
     }
 }

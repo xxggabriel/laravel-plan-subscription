@@ -20,6 +20,13 @@ class PlanSubscription extends Model
         "canceled_at",
     ];
 
+    protected $fileble = [
+        'name',
+        'plan_id',
+        'trial_ends_at',
+        'starts_at',
+        'ends_at'
+    ];
 
     public function daysToEndOfSubscription()
     {
@@ -153,14 +160,17 @@ class PlanSubscription extends Model
         return $usage;
     }
 
-    public function plan(): BelongsTo
+    public function resetUsage(): void
     {
-        return $this->belongsTo(config('laravel-plan-subscription.models.plan'));
-    }
+        $usages = $this->usage();
 
-    public function usage(): HasMany
-    {
-        return $this->hasMany(config('laravel-plan-subscription.models.plan_subscription_usage'), 'subscription_id', 'id');
+        $usages->each(function($usage){
+            $feature = PlanFeature::find($usage->feature_id)
+                            ->select('value');
+            
+            $usage->used = $feature->value;
+            $usage->save();
+        });
     }
 
     public function getFeatureBySlug($featureSlug)
@@ -184,4 +194,13 @@ class PlanSubscription extends Model
         return $feature->value > intval($usage->used);
     }
 
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(config('laravel-plan-subscription.models.plan'));
+    }
+
+    public function usage(): HasMany
+    {
+        return $this->hasMany(config('laravel-plan-subscription.models.plan_subscription_usage'), 'subscription_id', 'id');
+    }
 }

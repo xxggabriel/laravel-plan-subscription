@@ -22,4 +22,19 @@ class Plan extends Model
     public function subscriptions() {
         return $this->belongsTo(PlanSubscription::class);
     }
+
+    public function isFree()
+    {
+        return $this->price === 0;
+    }
+
+    public function hasTrial()
+    {
+        return $this->trial_period > 0;
+    }
+
+    public function hasGrace()
+    {
+        return $this->grace_period > 0; 
+    }
 }
