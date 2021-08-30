@@ -12,6 +12,10 @@ class CreatePlanSubscriptionsTable extends Migration
         Schema::create('plan_subscriptions', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('plan_id')->unsigned();
+            $table->morphs('subscriber');
+            $table->string('slug');
+            $table->string('name');
+            $table->string('description');
             $table->dateTime('trial_ends_at')->nullable();
             $table->dateTime('starts_at')->nullable();
             $table->dateTime('ends_at')->nullable();
